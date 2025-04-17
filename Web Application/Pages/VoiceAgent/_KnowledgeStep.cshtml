@@ -1,0 +1,33 @@
+﻿@model PlayHT.Pages.VoiceAgent.CreateModel
+<h2>Step 3: Agent Knowledge (Optional)</h2>
+<div class="form-group mb-4">
+    <label for="fileUpload" class="control-label">Upload Custom Knowledge:</label>
+    <div class="custom-file-upload">
+        <input type="file" id="fileUpload" name="files" class="form-control-file" multiple
+               accept=".txt" />
+        <small class="form-text text-muted">
+            Supported file format: TXT (Maximum size: 10MB per file)
+        </small>
+    </div>
+</div>
+<div id="uploadNotifications" class="mt-3"></div>
+<div id="uploadsList" class="mt-3"></div>
+<template id="uploadItemTemplate">
+    <div class="upload-item mb-4 border rounded p-3 bg-light">
+        <div class="upload-info d-flex justify-content-between align-items-center mb-2">
+            <span class="filename font-weight-bold"></span>
+            <span class="filesize text-muted"></span>
+        </div>
+        <div class="progress" style="height: 20px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar"
+                 style="width: 0%;"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+                0%
+            </div>
+        </div>
+        <div class="upload-status mt-2"></div>
+    </div>
+</template>

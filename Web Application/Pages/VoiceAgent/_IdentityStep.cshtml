@@ -1,0 +1,62 @@
+﻿@model PlayHT.Pages.VoiceAgent.CreateModel
+
+<h2>Step 1: Agent Identity</h2>
+
+<div class="form-group">
+    <label asp-for="Agent.Name" class="control-label"></label>
+    <input asp-for="Agent.Name" class="form-control" />
+    <span asp-validation-for="Agent.Name" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <input type="text" id="voiceSearch" class="form-control" placeholder="Search voice..." oninput="filterVoices()" />
+</div>
+
+<div class="form-group">
+    <label for="genderFilter">Filter by Gender:</label>
+    <select id="genderFilter" class="form-control" onchange="filterVoices()">
+        <option value="">All</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label for="accentFilter">Filter by Accent:</label>
+    <select id="accentFilter" class="form-control" onchange="filterVoices()">
+        <option value="">All</option>
+        @foreach (var accent in Model.Accents)
+        {
+            <option value="@accent">@accent</option>
+        }
+    </select>
+</div>
+
+<div class="form-group">
+    <label for="styleFilter">Filter by Style:</label>
+    <select id="styleFilter" class="form-control" onchange="filterVoices()">
+        <option value="">All</option>
+        @foreach (var style in Model.Styles)
+        {
+            <option value="@style">@style</option>
+        }
+    </select>
+</div>
+
+<div class="form-group">
+    <label asp-for="Agent.SelectedVoiceId" class="control-label"></label>
+    <select asp-for="Agent.SelectedVoiceId" class="form-control">
+        <option value="">-- Select Voice --</option>
+        @foreach (var voice in Model.Voices)
+        {
+            <option value="@voice.GetCleanVoiceId()" data-gender="@voice.Gender" data-accent="@voice.Accent" data-style="@voice.Style" data-voice-id="@voice.GetCleanVoiceId()">
+                @voice.Name (@voice.Gender, @voice.Accent, @voice.Style)
+            </option>
+        }
+    </select>
+    <span asp-validation-for="Agent.SelectedVoiceId" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <button type="button" class="btn btn-primary btn-play" onclick="playVoiceSample(this)">Play Voice Sample</button>
+</div>

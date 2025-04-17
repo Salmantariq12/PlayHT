@@ -1,0 +1,338 @@
+﻿@page
+@model PlayHT.Pages.VoiceAgent.CreateModel
+@{
+    ViewData["Title"] = "Create Voice Agent";
+}
+
+<div class="wizard-container" role="main" aria-label="Voice Agent Creation Wizard">
+    <div class="wizard-progress" role="navigation" aria-label="Wizard Steps">
+        @for (int i = 1; i <= 3; i++)
+        {
+            <div class="step @(Model.CurrentStep == i ? "active" : "")"
+                 role="tab"
+                 aria-selected="@(Model.CurrentStep == i ? "true" : "false")"
+                 aria-controls="step@(i)Content">
+                <span>@Model.GetStepName(i)</span>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <form method="post" enctype="multipart/form-data"
+          id="agentForm"
+          data-current-step="@Model.CurrentStep"
+          aria-label="Voice Agent Configuration Form">
+
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="CurrentStep" />
+        <div id="step@(Model.CurrentStep)Content" role="tabpanel">
+            @if (Model.CurrentStep == 1)
+            {
+                <partial name="_IdentityStep" model="Model" />
+            }
+            else if (Model.CurrentStep == 2)
+            {
+                <partial name="_BehaviorStep" model="Model" />
+            }
+            else if (Model.CurrentStep == 3)
+            {
+                <partial name="_KnowledgeStep" model="Model" />
+            }
+        </div>
+
+     <div class="wizard-buttons">
+        @if (Model.CurrentStep > 1)
+        {
+            <button type="submit"
+                    name="direction"
+                    value="previous"
+                    class="btn btn-secondary"
+                    aria-label="Previous Step">
+                Previous
+            </button>
+        }
+        @if (Model.CurrentStep < 3)
+        {
+            <button type="submit"
+                    name="direction"
+                    value="next"
+                    class="btn btn-primary"
+                    aria-label="Next Step">
+                Next
+            </button>
+        }
+        else if (Model.CurrentStep == 3)
+        {
+            <button type="submit"
+                    name="deploy"
+                    value="true"
+                    class="btn btn-primary"
+                    aria-label="Deploy Agent"
+                    onclick="return confirmDeploy()">
+                Deploy Agent
+            </button>
+    }
+</div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        
+            function playVoiceSample(button) {
+                var selectedVoice = document.getElementById('Agent_SelectedVoiceId')?.value;
+                console.log('Playing sample for voice ID:', selectedVoice);
+                if (!selectedVoice) {
+                    console.error('No voice ID provided');
+                    alert('No voice ID available for this sample');
+                    return;
+                }
+
+                button.disabled = true;
+                button.textContent = 'Loading...';
+
+                fetch('/VoiceAgent/Create?handler=GenerateVoiceSample', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        voiceId: selectedVoice,
+                        text: "Hello, this is a sample of my voice."
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error(`Failed to generate sample: ${text}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Use our backend endpoint to get the audio
+                        return fetch(`/VoiceAgent/Create?handler=AudioStream&url=${encodeURIComponent(data.url)}`);
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to load audio');
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const audio = new Audio(URL.createObjectURL(blob));
+                        button.textContent = 'Playing...';
+
+                        audio.addEventListener('ended', () => {
+                            button.disabled = false;
+                            button.textContent = 'Play Sample';
+                        });
+
+                        audio.addEventListener('error', (e) => {
+                            console.error('Audio playback error:', e);
+                            button.disabled = false;
+                            button.textContent = 'Play Sample';
+                            alert('Failed to play audio');
+                        });
+
+                        return audio.play();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to play voice sample: ' + error.message);
+                        button.disabled = false;
+                        button.textContent = 'Play Sample';
+                    });
+            }
+        function filterVoices() {
+                var gender = document.getElementById('genderFilter')?.value?.toLowerCase() || '';
+                var accent = document.getElementById('accentFilter')?.value?.toLowerCase() || '';
+                var style = document.getElementById('styleFilter')?.value?.toLowerCase() || '';
+                var search = document.getElementById('voiceSearch')?.value?.toLowerCase() || '';
+
+                var voiceSelect = document.getElementById('Agent_SelectedVoiceId');
+                for (var i = 0; i < voiceSelect.options.length; i++) {
+                    var option = voiceSelect.options[i];
+                    var voiceGender = option.getAttribute('data-gender')?.toLowerCase() || '';
+                    var voiceAccent = option.getAttribute('data-accent')?.toLowerCase() || '';
+                    var voiceStyle = option.getAttribute('data-style')?.toLowerCase() || '';
+                    var voiceName = option.text?.toLowerCase() || '';
+
+                    var matchesFilter = (!gender || voiceGender === gender) &&
+                        (!accent || voiceAccent === accent) &&
+                        (!style || voiceStyle === style) &&
+                        voiceName.includes(search);
+
+                    option.style.display = matchesFilter ? 'block' : 'none';
+                }
+            }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Confirmation dialog for deployment
+            function confirmDeploy() {
+                return confirm('Are you sure you want to deploy this agent? This action cannot be undone.');
+            }
+
+
+
+
+            const fileUpload = document.getElementById('fileUpload');
+            if (fileUpload) {
+                fileUpload.addEventListener('change', function(e) {
+                    handleFiles(this.files);
+                });
+            }
+
+            function createProgressBar(fileName, fileSize) {
+                const template = document.getElementById('uploadItemTemplate');
+                if (!template) {
+                    console.error('Upload template not found');
+                    return null;
+                }
+
+                const uploadItem = template.content.cloneNode(true);
+                const container = uploadItem.querySelector('.upload-item');
+                
+                const formattedSize = formatFileSize(fileSize);
+                uploadItem.querySelector('.filename').textContent = fileName;
+                uploadItem.querySelector('.filesize').textContent = formattedSize;
+                
+                const uploadsList = document.getElementById('uploadsList');
+                uploadsList.appendChild(container);
+                return container;
+            }
+
+            function updateStatus(uploadItem, message, isError = false) {
+                if (!uploadItem) return;
+                const statusElement = uploadItem.querySelector('.upload-status');
+                if (statusElement) {
+                    statusElement.textContent = message;
+                    statusElement.className = 'upload-status mt-2 p-2 rounded ' + 
+                        (isError ? 'bg-danger text-white' : 'bg-success text-white');
+                }
+            }
+
+            function updateProgress(uploadItem, percent) {
+                if (!uploadItem) return;
+                const progressBar = uploadItem.querySelector('.progress-bar');
+                if (progressBar) {
+                    const width = Math.round(percent);
+                    progressBar.style.width = width + '%';
+                    progressBar.setAttribute('aria-valuenow', width);
+                    progressBar.textContent = width + '%';
+                    
+                    if (width === 100) {
+                        progressBar.classList.remove('progress-bar-animated');
+                        progressBar.classList.add('bg-success');
+                    }
+                }
+            }
+
+            function showError(message) {
+                const notificationsDiv = document.getElementById('uploadNotifications');
+                if (notificationsDiv) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger';
+                    errorDiv.textContent = message;
+                    notificationsDiv.appendChild(errorDiv);
+                    setTimeout(() => errorDiv.remove(), 5000);
+                }
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            async function uploadFile(file, uploadItem) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const currentStep = document.querySelector('input[name="CurrentStep"]').value;
+
+                    const response = await fetch(`/VoiceAgent/Create?handler=UploadDocument&currentStep=${currentStep}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': token,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Upload failed: ${response.statusText}`);
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    return false;
+                }
+            }
+
+            async function handleFiles(files) {
+                const maxFileSize = 10 * 1024 * 1024; // 10MB
+                const validTypes = ['.pdf', '.doc', '.docx', '.txt'];
+
+                for (const file of files) {
+                    if (file.size > maxFileSize) {
+                        showError(`File ${file.name} exceeds 10MB limit`);
+                        continue;
+                    }
+
+                    const extension = '.' + file.name.split('.').pop().toLowerCase();
+                    if (!validTypes.includes(extension)) {
+                        showError(`Invalid file type: ${file.name}. Please use PDF, DOC, DOCX, or TXT files.`);
+                        continue;
+                    }
+
+                    const uploadItem = createProgressBar(file.name, file.size);
+                    if (!uploadItem) {
+                        showError('Could not create upload progress bar');
+                        continue;
+                    }
+
+                    updateStatus(uploadItem, 'Starting upload...', false);
+
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        if (progress < 90) {
+                            progress += 10;
+                            updateProgress(uploadItem, progress);
+                        }
+                    }, 500);
+
+                    try {
+                        const success = await uploadFile(file, uploadItem);
+                        clearInterval(interval);
+                        
+                        if (success) {
+                            updateProgress(uploadItem, 100);
+                            updateStatus(uploadItem, 'Upload completed successfully', false);
+                        } else {
+                            updateProgress(uploadItem, 0);
+                            updateStatus(uploadItem, 'Upload failed', true);
+                        }
+                    } catch (error) {
+                        clearInterval(interval);
+                        updateProgress(uploadItem, 0);
+                        updateStatus(uploadItem, 'Upload failed: ' + error.message, true);
+                    }
+                }
+            }
+
+            // Initialize filterVoices on load
+            filterVoices();
+        });
+    </script>
+}

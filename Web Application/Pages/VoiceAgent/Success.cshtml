@@ -1,0 +1,118 @@
+﻿@page
+@model PlayHT.Pages.VoiceAgent.SuccessModel
+@{
+    ViewData["Title"] = "Agent Deployed Successfully";
+}
+
+@* Add the anti-forgery token *@
+@Html.AntiForgeryToken()
+
+<div class="success-container">
+    <div class="success-header">
+        <h1>🎉 Agent Deployed Successfully!</h1>
+    </div>
+    <div class="agent-details">
+        <div class="detail-card">
+            <h3>Web Embed Code</h3>
+            <div class="code-block">
+                <pre><code>@Model.Agent.EmbedCode</code></pre>
+                <button class="btn btn-secondary" onclick="copyToClipboard('@Model.Agent.EmbedCode')">
+                    Copy Code
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Agent.WebUrl))
+        {
+            <div class="detail-card">
+                <h3>Preview URL</h3>
+                <p class="web-url">@Model.Agent.WebUrl</p>
+                <a href="@Model.Agent.WebUrl" target="_blank" class="btn btn-primary">
+                    Open Preview
+                </a>
+            </div>
+        }
+        <div class="detail-card">
+            <h3>Agent Status</h3>
+            <div class="status-indicator @Model.Status.ToLowerInvariant()">
+                @Model.Status
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    showToast('Code copied to clipboard!');
+                })
+                .catch(err => {
+                    showToast('Failed to copy code', 'error');
+                });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+
+    <style>
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+
+            .toast.error {
+                background: #f44336;
+            }
+
+        .success-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+
+        .detail-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .code-block {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+            .status-indicator.active {
+                background: #28a745;
+                color: white;
+            }
+
+            .status-indicator.inactive {
+                background: #dc3545;
+                color: white;
+            }
+    </style>
+}

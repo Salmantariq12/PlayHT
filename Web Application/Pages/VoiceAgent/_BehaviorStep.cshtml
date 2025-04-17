@@ -1,0 +1,15 @@
+﻿@model PlayHT.Pages.VoiceAgent.CreateModel
+
+<h2>Step 2: Agent Behavior</h2>
+
+<div class="form-group">
+    <label asp-for="Agent.GreetingText" class="control-label"></label>
+    <textarea asp-for="Agent.GreetingText" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Agent.GreetingText" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Agent.PromptText" class="control-label"></label>
+    <textarea asp-for="Agent.PromptText" class="form-control" rows="5"></textarea>
+    <span asp-validation-for="Agent.PromptText" class="text-danger"></span>
+</div>
